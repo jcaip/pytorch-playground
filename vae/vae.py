@@ -113,7 +113,6 @@ model = VAE(784, 100, 2)
 model = model.cuda()
 optimizer = optim.Adam(model.parameters(), lr=0.0003)
 
-
 num_epochs = 50
 for epoch in range(num_epochs):
     epoch_run = tqdm(enumerate(train_loader))
@@ -151,9 +150,3 @@ for c, dim1 in enumerate(np.linspace(-2, 2, num=columns)):
 fig.subplots_adjust(wspace=0)
 fig.subplots_adjust(hspace=0)
 plt.show()
-
-
-fig = plt.figure(figsize=(8,8))
-for idx, (data, target) in enumerate(test_loader): 
-    outputs = model.encode(data).
-    plt.scatter()
