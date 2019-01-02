@@ -17,17 +17,15 @@ from tqdm import tqdm
   
         
 class Encoder(nn.Module):
-    
     def __init__(self, input_size, hidden_size, latent_size):
         super(Encoder, self).__init__()
         
         self.linear1 = nn.Linear(input_size, hidden_size)
-        self.linear2_mean = nn.Linear(hidden_size, latent_size)
-        self.linear2_logvar = nn.Linear(hidden_size, latent_size)
+        self.linear2 = nn.Linear(hidden_size, latent_size)
     
     def forward(self, x):
         h1 = F.relu(self.linear1(x))
-        return self.linear2_mean(h1), self.linear2_logvar(h1)
+        return self.linear2(h1) 
     
 class Decoder(nn.Module):
     
@@ -41,7 +39,7 @@ class Decoder(nn.Module):
         h1 = F.relu(self.linear1(z))
         return F.sigmoid(self.linear2(h1))
     
-class VAE(nn.Module):
+class DAE(nn.Module):
     
     def __init__(self, input_size, hidden_size, latent_size):
         super(VAE, self).__init__()
@@ -49,12 +47,10 @@ class VAE(nn.Module):
         self.encoder = Encoder(input_size, hidden_size, latent_size)
         self.decoder = Decoder(input_size, hidden_size, latent_size)
 
-        
     def forward(self, x):
-        mean, logvar = self.encoder(x)
-        latent = self.reparameterize(mean, logvar)
+        latent = self.encoder(x)
         reconstruction = self.decoder(latent)
-        return reconstruction, mean, logvar
+        return reconstruction, latent
         
     def reparameterize(self, mean, logvar):
         if self.training:
@@ -71,12 +67,7 @@ class VAE(nn.Module):
         input_noise = input_noise.cuda()
         return self.decoder(input_noise)
 
-def vae_loss(reconstruction, x, mean, logvar):
-    reconstruction_loss = F.binary_cross_entropy(reconstruction, x, size_average=False)
-    kl_loss = 0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
-    
-    return reconstruction_loss - kl_loss
-    
+
 import os
 root = './data'
 if not os.path.exists(root):
@@ -120,51 +111,6 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         epoch_run.set_description('Train Epoch: {} [{}/{}]\tLoss: {:.6f}'.format(epoch, idx* len(data), len(train_loader.dataset),  loss.item()))
+
 w=10
 h=10
-
-#generate some samples
-fig=plt.figure(figsize=(8, 8))
-columns = 5
-rows = 5
-p = 1
-plt.title("Generated Samples")
-for c, dim1 in enumerate(np.linspace(-2, 2, num=columns)):
-    for r, dim2 in enumerate(np.linspace(-2, 2, num=rows)):
-
-        input_noise= torch.Tensor([dim1, dim2])
-        test_image = model.generate().view(28, 28)
-
-        test_image = test_image.cpu()
-        fig.add_subplot(rows, columns, p)
-        np_image = np.squeeze(test_image.data.numpy())
-        plt.axis('off')
-        plt.imshow(np_image)
-        p += 1
-
-fig.subplots_adjust(wspace=0)
-fig.subplots_adjust(hspace=0)
-plt.show()
-
-# generate samples along a spectrum
-fig=plt.figure(figsize=(8, 8))
-columns = 15
-rows = 15
-p = 1
-plt.title("Generated Samples along two factors of variation")
-for c, dim1 in enumerate(np.linspace(-2, 2, num=columns)):
-    for r, dim2 in enumerate(np.linspace(-2, 2, num=rows)):
-
-        input_noise= torch.Tensor([dim1, dim2] )
-        test_image = model.generate(input_noise=input_noise).view(28, 28)
-
-        test_image = test_image.cpu()
-        fig.add_subplot(rows, columns, p)
-        np_image = np.squeeze(test_image.data.numpy())
-        plt.axis('off')
-        plt.imshow(np_image)
-        p += 1
-
-fig.subplots_adjust(wspace=0)
-fig.subplots_adjust(hspace=0)
-plt.show()
